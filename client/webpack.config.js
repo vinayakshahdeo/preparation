@@ -65,6 +65,7 @@ const config = {
 	devtool: 'source-map',
 };
 
+// eslint-disable-next-line import/no-anonymous-default-export
 export default () => {
 	if (isProduction) {
 		config.mode = 'production';
