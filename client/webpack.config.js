@@ -1,76 +1,91 @@
-// Generated using webpack-cli https://github.com/webpack/webpack-cli
+const path = require('path');
+const { ProvidePlugin } = require('webpack');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { ESBuildMinifyPlugin } = require('esbuild-loader');
+const Dotenv = require('dotenv-webpack');
 
-import path from 'path';
-import HtmlWebpackPlugin from 'html-webpack-plugin';
-import MiniCssExtractPlugin, {
-	loader as _loader,
-} from 'mini-css-extract-plugin';
+const IS_DEV_ENV = process.env.NODE_ENV === 'development';
 
-const isProduction = process.env.NODE_ENV === 'production';
-
-const stylesHandler = _loader;
-
-const config = {
+module.exports = {
+	mode: process.env.NODE_ENV || 'development',
+	devtool: IS_DEV_ENV ? 'inline-source-map' : false,
+	devServer: {
+		static: { directory: path.join(__dirname, 'public') },
+		compress: true,
+		port: 3000,
+		proxy: {
+			'/api/v1/': {
+				target: 'http://localhost:4000',
+				secure: false,
+				changeOrigin: true,
+			},
+		},
+		open: true,
+		historyApiFallback: true,
+		hot: true,
+	},
+	optimization: IS_DEV_ENV
+		? { minimize: false }
+		: {
+				minimizer: [
+					new ESBuildMinifyPlugin({
+						target: 'es2015',
+						css: true,
+						minifyWhitespace: true,
+						minifyIdentifiers: true,
+						minifySyntax: true,
+						legalComments: 'none',
+						format: 'iife',
+					}),
+				],
+		  },
 	entry: './src/index.tsx',
 	output: {
-		chunkFilename: '[name].js',
-		filename: '[name].js',
+		path: path.join(__dirname, 'build'),
+		chunkFilename: '[name].[chunkhash].bundle.js',
+		filename: '[name].[contenthash].bundle.js',
+		publicPath: '/',
+		clean: true,
 	},
-	devServer: {
-		open: true,
-		host: 'localhost',
-	},
-	plugins: [
-		new HtmlWebpackPlugin({
-			template: 'index.html',
-		}),
-
-		new MiniCssExtractPlugin(),
-
-		// Add your plugins here
-		// Learn more about plugins from https://webpack.js.org/configuration/plugins/
-	],
+	resolve: { extensions: ['.tsx', '.ts', '.jsx', '.js', '.css'] },
 	module: {
 		rules: [
 			{
-				test: /\.(ts|tsx)$/i,
-				loader: 'ts-loader',
-				exclude: ['/node_modules/'],
+				test: /\.(js|jsx)$/,
+				exclude: /node_modules/,
+				use: ['babel-loader'],
 			},
 			{
-				test: /\.less$/i,
-				use: [
-					stylesHandler,
-					'css-loader',
-					'postcss-loader',
-					'less-loader',
-				],
+				test: /\.(ts|tsx)$/,
+				exclude: /node_modules/,
+				use: ['ts-loader'],
 			},
 			{
-				test: /\.css$/i,
-				use: [stylesHandler, 'css-loader', 'postcss-loader'],
+				test: /\.(css|scss)$/,
+				use: ['style-loader', 'css-loader', 'sass-loader'],
 			},
 			{
-				test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
-				type: 'asset',
+				test: /\.(jpg|jpeg|png|gif|mp3|svg|ico)$/,
+				use: ['file-loader'],
 			},
-
-			// Add your rules for custom modules here
-			// Learn more about loaders from https://webpack.js.org/loaders/
 		],
 	},
-	resolve: {
-		extensions: ['.tsx', '.ts', '.jsx', '.js', '...'],
-	},
-	devtool: 'source-map',
-};
-
-// eslint-disable-next-line import/no-anonymous-default-export
-export default () => {
-	if (isProduction) {
-		config.mode = 'production';
-	} else {
-		config.mode = 'development';
-	}
-	return config;
+	plugins: [
+		new HtmlWebpackPlugin({
+			inject: true,
+			hash: true,
+			template: path.join(__dirname, 'public', 'index.html'),
+		}),
+		new CleanWebpackPlugin({ cleanOnceBeforeBuildPatterns: ['build'] }),
+		new ProvidePlugin({ React: 'react' }),
+		new CopyPlugin({
+			patterns: [
+				{ from: path.join(__dirname, 'public', 'robots.txt'), to: '' },
+			],
+		}),
+		new Dotenv(),
+	],
+	performance: { hints: false },
 };
