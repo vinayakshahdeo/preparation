@@ -72,7 +72,7 @@
 		"build": "cross-env-shell NODE_ENV=production rm -rf build && webpack --progress --config=webpack.config.js --mode production",
 		"lint": "eslint --fix",
 		"prettier": "prettier --ignore-path .gitignore --write",
-		"prepare": "node -e \"if (process.env.NODE_ENV !== 'production'){process.exit(1)} \" || husky install"
+		"prepare": "husky install"
 	},
 	"eslintConfig": {
 		"extends": [
